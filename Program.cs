@@ -53,6 +53,25 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+
+        var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        var errorMessage = exceptionHandlerPathFeature?.Error?.Message ?? "An unexpected error occurred.";
+
+        await context.Response.WriteAsJsonAsync(new { message = errorMessage });
+    });
+});
+
 app.UseHttpsRedirection();
 
 if (!app.Environment.IsDevelopment())

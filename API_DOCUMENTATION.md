@@ -67,7 +67,7 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
 
 ## Synchronization
 
-### Sync All Data
+### Sync All Data (Bulk)
 
 **Endpoint:** `POST /api/sync/sync-all`
 
@@ -138,6 +138,132 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
 ```json
 {
   "message": "Unauthorized"
+}
+```
+
+### Sync Call Logs
+
+**Endpoint:** `POST /api/sync/call-logs`
+
+**Description:** Synchronize CallLogs only. Performs upsert operations based on ID and timestamp.
+
+**Authorization:** Required (JWT Bearer token)
+
+**Request Body:**
+```json
+{
+  "deviceId": "string",
+  "deviceName": "string",
+  "callLogs": [
+    {
+      "id": "uuid",
+      "callerNumber": "string",
+      "calleeNumber": "string",
+      "deviceId": "string",
+      "callType": 1,
+      "timestamp": 1640995200000,
+      "duration": 300,
+      "callStatus": "Ended",
+      "syncStatus": 0
+    }
+  ]
+}
+```
+
+**Response (Success - 200):**
+```json
+{
+  "message": "Call logs synced successfully."
+}
+```
+
+**Response (Partial Success - 207):**
+```json
+{
+  "message": "Call logs synced with errors.",
+  "errors": ["CallLog {id} failed to sync."]
+}
+```
+
+### Sync Messages
+
+**Endpoint:** `POST /api/sync/messages`
+
+**Description:** Synchronize Messages only. Performs upsert operations based on ID and timestamp.
+
+**Authorization:** Required (JWT Bearer token)
+
+**Request Body:**
+```json
+{
+  "deviceId": "string",
+  "deviceName": "string",
+  "messages": [
+    {
+      "id": "uuid",
+      "address": "string",
+      "body": "string",
+      "type": 1,
+      "dateSent": 1640995200000,
+      "syncStatus": 0
+    }
+  ]
+}
+```
+
+**Response (Success - 200):**
+```json
+{
+  "message": "Messages synced successfully."
+}
+```
+
+**Response (Partial Success - 207):**
+```json
+{
+  "message": "Messages synced with errors.",
+  "errors": ["Message {id} failed to sync."]
+}
+```
+
+### Sync App Notifications
+
+**Endpoint:** `POST /api/sync/app-notifications`
+
+**Description:** Synchronize AppNotifications only. Performs upsert operations based on ID and timestamp.
+
+**Authorization:** Required (JWT Bearer token)
+
+**Request Body:**
+```json
+{
+  "deviceId": "string",
+  "deviceName": "string",
+  "appNotifications": [
+    {
+      "id": "uuid",
+      "packageName": "string",
+      "title": "string",
+      "content": "string",
+      "postTime": 1640995200000,
+      "syncStatus": 0
+    }
+  ]
+}
+```
+
+**Response (Success - 200):**
+```json
+{
+  "message": "App notifications synced successfully."
+}
+```
+
+**Response (Partial Success - 207):**
+```json
+{
+  "message": "App notifications synced with errors.",
+  "errors": ["AppNotification {id} failed to sync."]
 }
 ```
 

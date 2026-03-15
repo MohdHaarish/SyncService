@@ -22,39 +22,108 @@ public class SyncController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost("sync-all")]
-    public async Task<IActionResult> SyncAll([FromBody] SyncDataDto syncData)
+    [HttpPost("call-logs")]
+    public async Task<IActionResult> SyncCallLogs([FromBody] SyncCallLogsDto syncData)
     {
-        if (syncData == null)
+        if (syncData == null || syncData.CallLogs == null)
         {
-            _logger.LogWarning("SyncAll called with null payload.");
-            return BadRequest("Sync data is required.");
+            _logger.LogWarning("SyncCallLogs called with null payload.");
+            return BadRequest("Call logs data is required.");
         }
 
-        _logger.LogInformation("SyncAll called from device {DeviceId} ({DeviceName}) with {CallLogCount} call logs, {MessageCount} messages, {NotificationCount} notifications.",
+        _logger.LogInformation("SyncCallLogs called from device {DeviceId} ({DeviceName}) with {CallLogCount} call logs.",
             syncData.DeviceId,
             syncData.DeviceName,
-            syncData.CallLogs.Count,
-            syncData.Messages.Count,
+            syncData.CallLogs.Count);
+
+        var errors = new List<string>();
+
+        await SafeUpsertDeviceIdentifier(syncData.DeviceId, syncData.DeviceName, errors);
+
+        foreach (var callLog in syncData.CallLogs)
+        {
+            await SafeUpsertCallLog(callLog, syncData.DeviceId, errors);
+        }
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving changes after sync call logs from device {DeviceId} ({DeviceName}).", syncData.DeviceId, syncData.DeviceName);
+            errors.Add("Failed to save changes to the database.");
+        }
+
+        if (errors.Count > 0)
+        {
+            _logger.LogWarning("SyncCallLogs completed with {ErrorCount} errors from device {DeviceId} ({DeviceName}).", errors.Count, syncData.DeviceId, syncData.DeviceName);
+            return StatusCode(207, new { message = "Call logs synced with errors.", errors });
+        }
+
+        return Ok("Call logs synced successfully.");
+    }
+
+    [HttpPost("messages")]
+    public async Task<IActionResult> SyncMessages([FromBody] SyncMessagesDto syncData)
+    {
+        if (syncData == null || syncData.Messages == null)
+        {
+            _logger.LogWarning("SyncMessages called with null payload.");
+            return BadRequest("Messages data is required.");
+        }
+
+        _logger.LogInformation("SyncMessages called from device {DeviceId} ({DeviceName}) with {MessageCount} messages.",
+            syncData.DeviceId,
+            syncData.DeviceName,
+            syncData.Messages.Count);
+
+        var errors = new List<string>();
+
+        await SafeUpsertDeviceIdentifier(syncData.DeviceId, syncData.DeviceName, errors);
+
+        foreach (var message in syncData.Messages)
+        {
+            await SafeUpsertMessage(message, errors);
+        }
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving changes after sync messages from device {DeviceId} ({DeviceName}).", syncData.DeviceId, syncData.DeviceName);
+            errors.Add("Failed to save changes to the database.");
+        }
+
+        if (errors.Count > 0)
+        {
+            _logger.LogWarning("SyncMessages completed with {ErrorCount} errors from device {DeviceId} ({DeviceName}).", errors.Count, syncData.DeviceId, syncData.DeviceName);
+            return StatusCode(207, new { message = "Messages synced with errors.", errors });
+        }
+
+        return Ok("Messages synced successfully.");
+    }
+
+    [HttpPost("app-notifications")]
+    public async Task<IActionResult> SyncAppNotifications([FromBody] SyncAppNotificationsDto syncData)
+    {
+        if (syncData == null || syncData.AppNotifications == null)
+        {
+            _logger.LogWarning("SyncAppNotifications called with null payload.");
+            return BadRequest("App notifications data is required.");
+        }
+
+        _logger.LogInformation("SyncAppNotifications called from device {DeviceId} ({DeviceName}) with {NotificationCount} app notifications.",
+            syncData.DeviceId,
+            syncData.DeviceName,
             syncData.AppNotifications.Count);
 
         var errors = new List<string>();
 
         await SafeUpsertDeviceIdentifier(syncData.DeviceId, syncData.DeviceName, errors);
 
-        // Process CallLogs
-        foreach (var callLog in syncData.CallLogs)
-        {
-            await SafeUpsertCallLog(callLog, syncData.DeviceId, errors);
-        }
-
-        // Process Messages
-        foreach (var message in syncData.Messages)
-        {
-            await SafeUpsertMessage(message, errors);
-        }
-
-        // Process AppNotifications
         foreach (var notification in syncData.AppNotifications)
         {
             await SafeUpsertAppNotification(notification, errors);
@@ -66,17 +135,17 @@ public class SyncController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving changes after sync from device {DeviceId} ({DeviceName}).", syncData.DeviceId, syncData.DeviceName);
+            _logger.LogError(ex, "Error saving changes after sync app notifications from device {DeviceId} ({DeviceName}).", syncData.DeviceId, syncData.DeviceName);
             errors.Add("Failed to save changes to the database.");
         }
 
         if (errors.Count > 0)
         {
-            _logger.LogWarning("SyncAll completed with {ErrorCount} errors from device {DeviceId} ({DeviceName}).", errors.Count, syncData.DeviceId, syncData.DeviceName);
-            return StatusCode(207, new { message = "Data synced with errors.", errors });
+            _logger.LogWarning("SyncAppNotifications completed with {ErrorCount} errors from device {DeviceId} ({DeviceName}).", errors.Count, syncData.DeviceId, syncData.DeviceName);
+            return StatusCode(207, new { message = "App notifications synced with errors.", errors });
         }
 
-        return Ok("Data synced successfully.");
+        return Ok("App notifications synced successfully.");
     }
 
     private async Task SafeUpsertDeviceIdentifier(string deviceId, string deviceName, List<string> errors)
