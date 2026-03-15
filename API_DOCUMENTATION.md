@@ -78,10 +78,14 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
 **Request Body:**
 ```json
 {
+  "deviceId": "string", // Identifier of the device sending this sync request
+  "deviceName": "string", // Human-readable device model/name
   "callLogs": [
     {
       "id": "uuid",
-      "phoneNumber": "string",
+      "callerNumber": "string", // Who is calling
+      "calleeNumber": "string", // Who is being called
+      "deviceId": "string", // Optional: device id that generated the call event
       "callType": 1,
       "timestamp": 1640995200000,
       "duration": 300,
@@ -119,6 +123,17 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
 }
 ```
 
+**Response (Partial Success - 207):**
+```json
+{
+  "message": "Data synced with errors.",
+  "errors": [
+    "CallLog {id} failed to sync.",
+    "Message {id} failed to sync."
+  ]
+}
+```
+
 **Response (Error - 401):**
 ```json
 {
@@ -143,12 +158,24 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
 ```json
 {
   "id": "uuid",
-  "phoneNumber": "string",
+  "callerNumber": "string", // Who is calling
+  "calleeNumber": "string", // Who is being called
+  "deviceId": "string", // Device identifier that reported the call event (optional)
   "callType": 1, // 1: Incoming, 2: Outgoing, 3: Missed
   "timestamp": 1640995200000, // Epoch milliseconds
   "duration": 300, // Seconds
   "callStatus": "string", // Ongoing, Ended, Rejected
   "syncStatus": 0 // 0: Pending, 1: Synced
+}
+```
+
+### DeviceIdentifier
+```json
+{
+  "id": "uuid",
+  "deviceId": "string", // Unique identifier for the device
+  "deviceName": "string", // Human-readable device name or model
+  "lastSeen": 1640995200000 // Epoch milliseconds of last sync
 }
 ```
 

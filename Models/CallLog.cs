@@ -11,8 +11,15 @@ public class CallLog
     public Guid Id { get; set; }
 
     [Required]
-    [Column(TypeName = "varchar(20)")]
-    public string PhoneNumber { get; set; } = string.Empty;
+    [Column(TypeName = "varchar(100)")]
+    public string CallerNumber { get; set; } = string.Empty;
+
+    [Required]
+    [Column(TypeName = "varchar(100)")]
+    public string CalleeNumber { get; set; } = string.Empty;
+
+    [Column(TypeName = "varchar(100)")]
+    public string? DeviceId { get; set; }
 
     [Required]
     public int CallType { get; set; }

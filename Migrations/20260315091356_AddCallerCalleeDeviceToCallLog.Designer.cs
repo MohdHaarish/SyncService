@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SyncService.Data;
 
@@ -11,9 +12,11 @@ using SyncService.Data;
 namespace SyncService.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260315091356_AddCallerCalleeDeviceToCallLog")]
+    partial class AddCallerCalleeDeviceToCallLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -65,18 +68,20 @@ namespace SyncService.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("CalleeNumber")
-                        .IsRequired()
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("CallerNumber")
-                        .IsRequired()
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("DeviceId")
                         .HasColumnType("varchar(100)");
 
                     b.Property<long>("Duration")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("varchar(20)");
 
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
@@ -87,28 +92,6 @@ namespace SyncService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("CallLogs");
-                });
-
-            modelBuilder.Entity("SyncService.Models.DeviceIdentifier", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("DeviceId")
-                        .IsRequired()
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<string>("DeviceName")
-                        .IsRequired()
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<long>("LastSeen")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DeviceIdentifiers");
                 });
 
             modelBuilder.Entity("SyncService.Models.Message", b =>
