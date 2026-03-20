@@ -26,5 +26,9 @@ public class AppNotification
     public long PostTime { get; set; }
 
     [Required]
+    [Column(TypeName = "datetime(0)")]
+    public DateTime PostTimeDateTime { get; set; }
+
+    [Required]
     public int SyncStatus { get; set; } = 0; // 0 for pending, 1 for synced
 }

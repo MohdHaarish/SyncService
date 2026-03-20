@@ -20,4 +20,8 @@ public class DeviceIdentifier
 
     [Required]
     public long LastSeen { get; set; }
+
+    [Required]
+    [Column(TypeName = "datetime(0)")]
+    public DateTime LastSeenDateTime { get; set; }
 }

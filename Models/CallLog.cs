@@ -28,6 +28,10 @@ public class CallLog
     public long Timestamp { get; set; }
 
     [Required]
+    [Column(TypeName = "datetime(0)")]
+    public DateTime TimestampDateTime { get; set; }
+
+    [Required]
     public long Duration { get; set; }
 
     [Required]

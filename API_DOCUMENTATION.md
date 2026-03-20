@@ -69,13 +69,13 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
 
 ### Sync All Data (Bulk)
 
-**Endpoint:** `POST /api/sync/sync-all`
+**Endpoint:** `POST /api/sync/call-logs`, `POST /api/sync/messages`, `POST /api/sync/app-notifications`
 
-**Description:** Bulk synchronize CallLogs, Messages, and AppNotifications. Performs upsert operations based on ID and timestamp.
+**Description:** Bulk synchronize CallLogs, Messages, or AppNotifications. Performs upsert operations based on ID and timestamp. Each event now includes both Unix epoch milliseconds fields (`timestamp|dateSent|postTime`) and datetime fields (`timestampDateTime|dateSentDateTime|postTimeDateTime`) in UTC truncated to seconds.
 
 **Authorization:** Required (JWT Bearer token)
 
-**Request Body:**
+**Request Body (common):**
 ```json
 {
   "deviceId": "string", // Identifier of the device sending this sync request
@@ -83,11 +83,12 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
   "callLogs": [
     {
       "id": "uuid",
-      "callerNumber": "string", // Who is calling
-      "calleeNumber": "string", // Who is being called
-      "deviceId": "string", // Optional: device id that generated the call event
+      "callerNumber": "string",
+      "calleeNumber": "string",
+      "deviceId": "string",
       "callType": 1,
       "timestamp": 1640995200000,
+      "timestampDateTime": "2022-01-01T00:00:00Z",
       "duration": 300,
       "callStatus": "Ended",
       "syncStatus": 0
@@ -100,6 +101,7 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
       "body": "string",
       "type": 1,
       "dateSent": 1640995200000,
+      "dateSentDateTime": "2022-01-01T00:00:00Z",
       "syncStatus": 0
     }
   ],
@@ -110,6 +112,7 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
       "title": "string",
       "content": "string",
       "postTime": 1640995200000,
+      "postTimeDateTime": "2022-01-01T00:00:00Z",
       "syncStatus": 0
     }
   ]
@@ -162,6 +165,7 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
       "deviceId": "string",
       "callType": 1,
       "timestamp": 1640995200000,
+      "timestampDateTime": "2022-01-01T00:00:00Z",
       "duration": 300,
       "callStatus": "Ended",
       "syncStatus": 0
@@ -205,6 +209,7 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
       "body": "string",
       "type": 1,
       "dateSent": 1640995200000,
+      "dateSentDateTime": "2022-01-01T00:00:00Z",
       "syncStatus": 0
     }
   ]
@@ -246,6 +251,7 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
       "title": "string",
       "content": "string",
       "postTime": 1640995200000,
+      "postTimeDateTime": "2022-01-01T00:00:00Z",
       "syncStatus": 0
     }
   ]

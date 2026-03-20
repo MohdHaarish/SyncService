@@ -36,4 +36,4 @@ See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for detailed API reference incl
 3. Register a user with `/api/auth/register`.
 4. Login with `/api/auth/login` to get a JWT token.
 5. Click "Authorize" in Swagger UI and enter `Bearer {token}`.
-6. Test the `/api/sync/sync-all` endpoint with sample data.
+6. Test `/api/sync/call-logs`, `/api/sync/messages`, and `/api/sync/app-notifications` endpoints with sample data that includes both Unix epoch and datetime fields.

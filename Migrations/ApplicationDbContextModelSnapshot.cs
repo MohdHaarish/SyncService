@@ -39,6 +39,9 @@ namespace SyncService.Migrations
                     b.Property<long>("PostTime")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime>("PostTimeDateTime")
+                        .HasColumnType("datetime(0)");
+
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
@@ -84,6 +87,9 @@ namespace SyncService.Migrations
                     b.Property<long>("Timestamp")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime>("TimestampDateTime")
+                        .HasColumnType("datetime(0)");
+
                     b.HasKey("Id");
 
                     b.ToTable("CallLogs");
@@ -106,6 +112,9 @@ namespace SyncService.Migrations
                     b.Property<long>("LastSeen")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime>("LastSeenDateTime")
+                        .HasColumnType("datetime(0)");
+
                     b.HasKey("Id");
 
                     b.ToTable("DeviceIdentifiers");
@@ -127,6 +136,9 @@ namespace SyncService.Migrations
 
                     b.Property<long>("DateSent")
                         .HasColumnType("bigint");
+
+                    b.Property<DateTime>("DateSentDateTime")
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");

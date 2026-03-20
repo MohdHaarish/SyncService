@@ -212,8 +212,11 @@ public class SyncController : ControllerBase
             return;
         }
 
+        var now = DateTimeOffset.UtcNow;
+        var lastSeenDateTime = TruncateToSeconds(now.UtcDateTime);
+        var lastSeenUnixMs = new DateTimeOffset(lastSeenDateTime).ToUnixTimeMilliseconds();
+
         var existing = await _context.DeviceIdentifiers.FirstOrDefaultAsync(d => d.DeviceId == deviceId);
-        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         if (existing == null)
         {
@@ -222,18 +225,22 @@ public class SyncController : ControllerBase
                 Id = Guid.NewGuid(),
                 DeviceId = deviceId,
                 DeviceName = deviceName,
-                LastSeen = now
+                LastSeen = lastSeenUnixMs,
+                LastSeenDateTime = lastSeenDateTime
             });
         }
         else
         {
             existing.DeviceName = deviceName;
-            existing.LastSeen = now;
+            existing.LastSeen = lastSeenUnixMs;
+            existing.LastSeenDateTime = lastSeenDateTime;
         }
     }
 
     private async Task UpsertCallLog(CallLog incoming)
     {
+        NormalizeTimestamps(incoming);
+
         var existing = await _context.CallLogs.FindAsync(incoming.Id);
         if (existing == null)
         {
@@ -251,6 +258,7 @@ public class SyncController : ControllerBase
                 existing.DeviceId = string.IsNullOrEmpty(incoming.DeviceId) ? existing.DeviceId : incoming.DeviceId;
                 existing.CallType = incoming.CallType;
                 existing.Timestamp = incoming.Timestamp;
+                existing.TimestampDateTime = incoming.TimestampDateTime;
                 existing.Duration = incoming.Duration;
                 existing.CallStatus = incoming.CallStatus;
                 existing.SyncStatus = 1; // Mark as synced
@@ -260,6 +268,8 @@ public class SyncController : ControllerBase
 
     private async Task UpsertMessage(Message incoming)
     {
+        NormalizeMessageTimestamps(incoming);
+
         var existing = await _context.Messages.FindAsync(incoming.Id);
         if (existing == null)
         {
@@ -276,6 +286,7 @@ public class SyncController : ControllerBase
                 existing.Body = incoming.Body;
                 existing.Type = incoming.Type;
                 existing.DateSent = incoming.DateSent;
+                existing.DateSentDateTime = incoming.DateSentDateTime;
                 existing.SyncStatus = 1; // Mark as synced
             }
         }
@@ -283,6 +294,8 @@ public class SyncController : ControllerBase
 
     private async Task UpsertAppNotification(AppNotification incoming)
     {
+        NormalizeAppNotificationTimestamps(incoming);
+
         var existing = await _context.AppNotifications.FindAsync(incoming.Id);
         if (existing == null)
         {
@@ -299,8 +312,101 @@ public class SyncController : ControllerBase
                 existing.Title = incoming.Title;
                 existing.Content = incoming.Content;
                 existing.PostTime = incoming.PostTime;
+                existing.PostTimeDateTime = incoming.PostTimeDateTime;
                 existing.SyncStatus = 1; // Mark as synced
             }
         }
+    }
+
+    private void NormalizeTimestamps(CallLog callLog)
+    {
+        if (callLog.TimestampDateTime == default && callLog.Timestamp > 0)
+        {
+            callLog.TimestampDateTime = ToUtcDateTime(callLog.Timestamp);
+        }
+
+        if (callLog.TimestampDateTime != default && callLog.Timestamp <= 0)
+        {
+            callLog.Timestamp = ToUnixMilliseconds(callLog.TimestampDateTime);
+        }
+
+        callLog.TimestampDateTime = TruncateToSeconds(callLog.TimestampDateTime);
+        callLog.Timestamp = ToUnixMilliseconds(callLog.TimestampDateTime);
+    }
+
+    private void NormalizeMessageTimestamps(Message message)
+    {
+        if (message.DateSentDateTime == default && message.DateSent > 0)
+        {
+            message.DateSentDateTime = ToUtcDateTime(message.DateSent);
+        }
+
+        if (message.DateSentDateTime != default && message.DateSent <= 0)
+        {
+            message.DateSent = ToUnixMilliseconds(message.DateSentDateTime);
+        }
+
+        message.DateSentDateTime = TruncateToSeconds(message.DateSentDateTime);
+        message.DateSent = ToUnixMilliseconds(message.DateSentDateTime);
+    }
+
+    private void NormalizeAppNotificationTimestamps(AppNotification notification)
+    {
+        if (notification.PostTimeDateTime == default && notification.PostTime > 0)
+        {
+            notification.PostTimeDateTime = ToUtcDateTime(notification.PostTime);
+        }
+
+        if (notification.PostTimeDateTime != default && notification.PostTime <= 0)
+        {
+            notification.PostTime = ToUnixMilliseconds(notification.PostTimeDateTime);
+        }
+
+        notification.PostTimeDateTime = TruncateToSeconds(notification.PostTimeDateTime);
+        notification.PostTime = ToUnixMilliseconds(notification.PostTimeDateTime);
+    }
+
+    private void NormalizeDeviceIdentifierTimestamps(DeviceIdentifier deviceIdentifier)
+    {
+        if (deviceIdentifier.LastSeenDateTime == default && deviceIdentifier.LastSeen > 0)
+        {
+            deviceIdentifier.LastSeenDateTime = ToUtcDateTime(deviceIdentifier.LastSeen);
+        }
+
+        if (deviceIdentifier.LastSeenDateTime != default && deviceIdentifier.LastSeen <= 0)
+        {
+            deviceIdentifier.LastSeen = ToUnixMilliseconds(deviceIdentifier.LastSeenDateTime);
+        }
+
+        deviceIdentifier.LastSeenDateTime = TruncateToSeconds(deviceIdentifier.LastSeenDateTime);
+        deviceIdentifier.LastSeen = ToUnixMilliseconds(deviceIdentifier.LastSeenDateTime);
+    }
+
+    private static long ToUnixMilliseconds(DateTime dateTime)
+    {
+        var utc = dateTime.Kind == DateTimeKind.Utc ? dateTime : dateTime.ToUniversalTime();
+        utc = TruncateToSeconds(utc);
+        return new DateTimeOffset(utc).ToUnixTimeMilliseconds();
+    }
+
+    private static DateTime ToUtcDateTime(long unixMilliseconds)
+    {
+        try
+        {
+            return TruncateToSeconds(DateTimeOffset.FromUnixTimeMilliseconds(unixMilliseconds).UtcDateTime);
+        }
+        catch
+        {
+            return DateTime.MinValue;
+        }
+    }
+
+    private static DateTime TruncateToSeconds(DateTime dateTime)
+    {
+        if (dateTime == DateTime.MinValue) return dateTime;
+
+        var ticks = dateTime.Kind == DateTimeKind.Utc ? dateTime.Ticks : dateTime.ToUniversalTime().Ticks;
+        var truncated = new DateTime(ticks - (ticks % TimeSpan.TicksPerSecond), DateTimeKind.Utc);
+        return truncated;
     }
 }

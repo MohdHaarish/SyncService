@@ -25,5 +25,9 @@ public class Message
     public long DateSent { get; set; }
 
     [Required]
+    [Column(TypeName = "datetime(0)")]
+    public DateTime DateSentDateTime { get; set; }
+
+    [Required]
     public int SyncStatus { get; set; } = 0; // 0 for pending, 1 for synced
 }
