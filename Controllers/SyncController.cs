@@ -148,6 +148,49 @@ public class SyncController : ControllerBase
         return Ok("App notifications synced successfully.");
     }
 
+    [HttpPost("chats")]
+    public async Task<IActionResult> SyncChats([FromBody] SyncChatsDto syncData)
+    {
+        if (syncData == null || syncData.Chats == null)
+        {
+            _logger.LogWarning("SyncChats called with null payload.");
+            return BadRequest("Chats data is required.");
+        }
+
+        _logger.LogInformation("SyncChats called from device {DeviceId} ({DeviceName}) with {ChatCount} chats.",
+            syncData.DeviceId,
+            syncData.DeviceName,
+            syncData.Chats.Count);
+
+        var errors = new List<string>();
+
+        await SafeUpsertDeviceIdentifier(syncData.DeviceId, syncData.DeviceName, errors);
+
+        foreach (var chat in syncData.Chats)
+        {
+            await SafeUpsertChat(chat, errors);
+        }
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving changes after sync chats from device {DeviceId} ({DeviceName}).", syncData.DeviceId, syncData.DeviceName);
+            errors.Add("Failed to save changes to the database.");
+        }
+
+        if (errors.Count > 0)
+        {
+            _logger.LogWarning("SyncChats completed with {ErrorCount} errors from device {DeviceId} ({DeviceName}).", errors.Count, syncData.DeviceId, syncData.DeviceName);
+            return StatusCode(207, new { message = "Chats synced with errors.", errors });
+        }
+
+        return Ok("Chats synced successfully.");
+    }
+
+
     private async Task SafeUpsertDeviceIdentifier(string deviceId, string deviceName, List<string> errors)
     {
         try
@@ -322,7 +365,7 @@ public class SyncController : ControllerBase
     {
         if (callLog.TimestampDateTime == default && callLog.Timestamp > 0)
         {
-            callLog.TimestampDateTime = ToUtcDateTime(callLog.Timestamp);
+            callLog.TimestampDateTime = ToLocalDateTime(callLog.Timestamp);
         }
 
         if (callLog.TimestampDateTime != default && callLog.Timestamp <= 0)
@@ -338,7 +381,7 @@ public class SyncController : ControllerBase
     {
         if (message.DateSentDateTime == default && message.DateSent > 0)
         {
-            message.DateSentDateTime = ToUtcDateTime(message.DateSent);
+            message.DateSentDateTime = ToLocalDateTime(message.DateSent);
         }
 
         if (message.DateSentDateTime != default && message.DateSent <= 0)
@@ -354,7 +397,7 @@ public class SyncController : ControllerBase
     {
         if (notification.PostTimeDateTime == default && notification.PostTime > 0)
         {
-            notification.PostTimeDateTime = ToUtcDateTime(notification.PostTime);
+            notification.PostTimeDateTime = ToLocalDateTime(notification.PostTime);
         }
 
         if (notification.PostTimeDateTime != default && notification.PostTime <= 0)
@@ -370,7 +413,7 @@ public class SyncController : ControllerBase
     {
         if (deviceIdentifier.LastSeenDateTime == default && deviceIdentifier.LastSeen > 0)
         {
-            deviceIdentifier.LastSeenDateTime = ToUtcDateTime(deviceIdentifier.LastSeen);
+            deviceIdentifier.LastSeenDateTime = ToLocalDateTime(deviceIdentifier.LastSeen);
         }
 
         if (deviceIdentifier.LastSeenDateTime != default && deviceIdentifier.LastSeen <= 0)
@@ -389,11 +432,15 @@ public class SyncController : ControllerBase
         return new DateTimeOffset(utc).ToUnixTimeMilliseconds();
     }
 
-    private static DateTime ToUtcDateTime(long unixMilliseconds)
+    private static DateTime ToLocalDateTime(long unixMilliseconds)
     {
         try
         {
-            return TruncateToSeconds(DateTimeOffset.FromUnixTimeMilliseconds(unixMilliseconds).UtcDateTime);
+            var utcDateTime = DateTimeOffset.FromUnixTimeMilliseconds(unixMilliseconds).UtcDateTime;
+            var localDateTime = utcDateTime.Kind == DateTimeKind.Utc
+                ? TimeZoneInfo.ConvertTime(utcDateTime, TimeZoneInfo.Utc, TimeZoneInfo.Local)
+                : utcDateTime;
+            return TruncateToSeconds(localDateTime);
         }
         catch
         {
@@ -408,5 +455,63 @@ public class SyncController : ControllerBase
         var ticks = dateTime.Kind == DateTimeKind.Utc ? dateTime.Ticks : dateTime.ToUniversalTime().Ticks;
         var truncated = new DateTime(ticks - (ticks % TimeSpan.TicksPerSecond), DateTimeKind.Utc);
         return truncated;
+    }
+
+    private async Task SafeUpsertChat(Chat incoming, List<string> errors)
+    {
+        try
+        {
+            await UpsertChat(incoming);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upsert chat {ChatId}.", incoming.Id);
+            errors.Add($"Chat {incoming.Id} failed to sync.");
+        }
+    }
+
+    private async Task UpsertChat(Chat incoming)
+    {
+        NormalizeChatTimestamps(incoming);
+
+        var existing = await _context.Chats.FindAsync(incoming.Id);
+        if (existing == null)
+        {
+            // Insert
+            incoming.SyncStatus = 1; // Mark as synced
+            _context.Chats.Add(incoming);
+        }
+        else
+        {
+            // Update only if incoming timestamp is more recent
+            if (incoming.Timestamp > existing.Timestamp)
+            {
+                existing.SentFrom = incoming.SentFrom;
+                existing.SendTo = incoming.SendTo;
+                existing.MessageContent = incoming.MessageContent;
+                existing.Timestamp = incoming.Timestamp;
+                existing.TimestampDateTime = incoming.TimestampDateTime;
+                existing.HasSeen = incoming.HasSeen;
+                existing.HasDelivered = incoming.HasDelivered;
+                existing.HasSent = incoming.HasSent;
+                existing.SyncStatus = 1; // Mark as synced
+            }
+        }
+    }
+
+    private void NormalizeChatTimestamps(Chat chat)
+    {
+        if (chat.TimestampDateTime == default && chat.Timestamp > 0)
+        {
+            chat.TimestampDateTime = ToLocalDateTime(chat.Timestamp);
+        }
+
+        if (chat.TimestampDateTime != default && chat.Timestamp <= 0)
+        {
+            chat.Timestamp = ToUnixMilliseconds(chat.TimestampDateTime);
+        }
+
+        chat.TimestampDateTime = TruncateToSeconds(chat.TimestampDateTime);
+        chat.Timestamp = ToUnixMilliseconds(chat.TimestampDateTime);
     }
 }

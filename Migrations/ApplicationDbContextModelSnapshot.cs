@@ -54,6 +54,47 @@ namespace SyncService.Migrations
                     b.ToTable("AppNotifications");
                 });
 
+            modelBuilder.Entity("SyncService.Models.Chat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("HasDelivered")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("HasSeen")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("HasSent")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("MessageContent")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SendTo")
+                        .IsRequired()
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("SentFrom")
+                        .IsRequired()
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<long>("Timestamp")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("TimestampDateTime")
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Chats");
+                });
+
             modelBuilder.Entity("SyncService.Models.CallLog", b =>
                 {
                     b.Property<Guid>("Id")

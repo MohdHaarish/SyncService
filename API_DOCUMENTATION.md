@@ -273,6 +273,51 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
 }
 ```
 
+### Sync Chats
+
+**Endpoint:** `POST /api/sync/chats`
+
+**Description:** Synchronize Chats only. Performs upsert operations based on ID and timestamp. Each chat message includes both Unix epoch milliseconds field (`timestamp`) and datetime field (`timestampDateTime`) in UTC truncated to seconds.
+
+**Authorization:** Required (JWT Bearer token)
+
+**Request Body:**
+```json
+{
+  "deviceId": "string",
+  "deviceName": "string",
+  "chats": [
+    {
+      "id": "uuid",
+      "sentFrom": "string", // Sender identifier
+      "sendTo": "string", // Recipient identifier
+      "messageContent": "string", // Chat message text
+      "timestamp": 1640995200000, // Epoch milliseconds
+      "timestampDateTime": "2022-01-01T00:00:00Z", // UTC datetime (seconds precision)
+      "hasSeen": false, // Whether message was seen
+      "hasDelivered": true, // Whether message was delivered
+      "hasSent": true, // Whether message was sent
+      "syncStatus": 0 // 0: Pending, 1: Synced
+    }
+  ]
+}
+```
+
+**Response (Success - 200):**
+```json
+{
+  "message": "Chats synced successfully."
+}
+```
+
+**Response (Partial Success - 207):**
+```json
+{
+  "message": "Chats synced with errors.",
+  "errors": ["Chat {id} failed to sync."]
+}
+```
+
 ## Data Models
 
 ### User
@@ -331,6 +376,22 @@ All protected endpoints require a JWT token in the Authorization header: `Bearer
   "title": "string", // Notification title
   "content": "string", // Notification content
   "postTime": 1640995200000, // Epoch milliseconds
+  "syncStatus": 0 // 0: Pending, 1: Synced
+}
+```
+
+### Chat
+```json
+{
+  "id": "uuid",
+  "sentFrom": "string", // Sender identifier
+  "sendTo": "string", // Recipient identifier
+  "messageContent": "string", // Chat message text
+  "timestamp": 1640995200000, // Epoch milliseconds
+  "timestampDateTime": "2022-01-01T00:00:00Z", // UTC datetime (seconds precision)
+  "hasSeen": false, // Whether message was seen by recipient
+  "hasDelivered": true, // Whether message was delivered
+  "hasSent": true, // Whether message was successfully sent
   "syncStatus": 0 // 0: Pending, 1: Synced
 }
 ```
